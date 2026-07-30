@@ -1,0 +1,185 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Invia una richiesta di supporto",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "La tua email",
+              "fieldType": "email"
+            },
+            {
+              "fieldLabel": "Dicci come possiamo aiutarti!",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -912,
+        -16
+      ],
+      "id": "25582fde-71fc-4efc-b097-da3c80e289a1",
+      "name": "On form submission",
+      "webhookId": "4204f13c-a0b7-4321-8485-14320249fbb0"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_GROQ_API_KEY"
+            },
+            {
+              "name": "Content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Messaggio da analizzare: {{ Object.values($json)[1] }}\\nRispondi ESCLUSIVAMENTE con la singola parola URGENTE o NORMALE.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -704,
+        -16
+      ],
+      "id": "5e227577-c1e9-443e-ae76-4f320d9b14b8",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.choices[0].message.content.trim() }}",
+                    "rightValue": "URGENTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "2d28266b-81d0-4c7d-9d8c-fd35aeee8765"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "73a09f24-336f-4ea7-bb9a-7473b87e9a3f",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        -16
+      ],
+      "id": "81fa1a6f-455d-4269-bca2-533f7c63e401",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "ATTENZIONE: Messaggio Urgente Ricevuto",
+        "message": "=È stato inviato un nuovo messaggio urgente!  Messaggio cliente: {{ $('On form submission').item.json[\"Dicci come possiamo aiutarti!\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -288,
+        -112
+      ],
+      "id": "6689da96-46c4-42cf-a935-4dee746a8f00",
+      "name": "Send a message",
+      "webhookId": "1d98f54e-6306-4d1f-9f8d-d551d0a0ffc3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+  }
+}
